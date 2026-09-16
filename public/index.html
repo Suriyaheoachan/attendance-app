@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"><title>หน้าแรก</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="content">
+    <h2 id="greeting">กำลังโหลด...</h2>
+    <div class="menu-grid" id="menu"></div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>
+    (async () => {
+      const user = await renderNav('index.html');
+      if (!user) return;
+      document.getElementById('greeting').innerText = `ยินดีต้อนรับ, ${user.name}`;
+
+      const items = [
+        { href: 'time-correction.html', label: '🕐 ขอเพิ่มเวลา' },
+        { href: 'ot.html', label: '⏱️ ขอ OT' },
+        { href: 'leave.html', label: '📝 ขอลางาน' },
+      ];
+        if (user.role === 'admin') {
+          items.push({ href: 'history-leave.html', label: '📊 ประวัติวันลา' });
+          items.push({ href: 'history-time-correction.html', label: '📋 ประวัติขอเพิ่มเวลา' });
+          items.push({ href: 'history-ot.html', label: '📈 ประวัติ OT' });
+      }
+
+      document.getElementById('menu').innerHTML = items.map(i =>
+        `<a class="menu-item" href="${i.href}">${i.label}</a>`
+      ).join('');
+    })();
+  </script>
+</body>
+</html>

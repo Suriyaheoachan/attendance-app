@@ -1,0 +1,77 @@
+* { box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+body { background: #f4f6f8; margin: 0; padding: 0; }
+
+/* Header/Navbar เต็มความกว้างจอ อยู่บนสุดเสมอ */
+.header { width: 100%; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.06); padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; }
+.header .brand { font-weight: 700; color: #1f2937; font-size: 20px; }
+.header .links a { margin-right: 18px; color: #2563eb; text-decoration: none; font-size: 14px; }
+.header .links a.active { font-weight: bold; text-decoration: underline; }
+.header .links a:hover { text-decoration: underline; }
+.header .user { font-size: 14px; color: #374151; display: flex; align-items: center; gap: 12px; }
+.header button.logout { width: auto; padding: 6px 14px; font-size: 15px; margin-top: 0; background: #6b7280; }
+.header button.logout:hover { background: #4b5563; }
+
+/* พื้นที่เนื้อหาใต้ header เสมอ จัดกึ่งกลาง */
+.content { padding: 40px 16px; display: flex; flex-direction: column; align-items: center; }
+
+.card { background: #fff; padding: 32px; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); width: 100%; max-width: 480px; }
+.card.wide { max-width: 900px; }
+h2 { margin-top: 0; color: #1f2937; }
+label { display: block; margin: 14px 0 6px; font-size: 14px; color: #374151; }
+input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; }
+input[readonly] { background: #f3f4f6; color: #6b7280; }
+button { margin-top: 20px; width: 100%; padding: 12px; background: #2563eb; color: #fff; border: none; border-radius: 8px; font-size: 15px; cursor: pointer; }
+button:hover { background: #1d4ed8; }
+.msg { margin-top: 14px; font-size: 14px; text-align: center; }
+.msg.success { color: #059669; }
+.msg.error { color: #dc2626; }
+.info-box { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px; margin-bottom: 16px; font-size: 14px; color: #374151; }
+table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 13px; }
+th, td { border: 1px solid #e5e7eb; padding: 8px; text-align: left; }
+th { background: #f3f4f6; }
+.filters { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* หน้า index — เมนูใหญ่กดเข้าแต่ละหน้า */
+.menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; width: 100%; max-width: 700px; }
+.menu-item { background: #fff; padding: 28px 20px; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.08); text-align: center; text-decoration: none; color: #1f2937; font-size: 16px; font-weight: 600; transition: transform 0.15s; }
+.menu-item:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
+
+button.bn {
+ display: inline-block;
+ border-radius: 4px;
+ background-color: #3d405b;
+ border: none;
+ color: #FFFFFF;
+ text-align: center;
+ font-size: 17px;
+ padding: 16px;
+ width: 130px;
+ transition: all 0.5s;
+ cursor: pointer;
+ margin: 5px;
+}
+
+button span {
+ cursor: pointer;
+ display: inline-block;
+ position: relative;
+ transition: 0.5s;
+}
+
+button span:after {
+ content: '»';
+ position: absolute;
+ opacity: 0;
+ top: 0;
+ right: -15px;
+ transition: 0.5s;
+}
+
+button:hover span {
+ padding-right: 15px;
+}
+
+button:hover span:after {
+ opacity: 1;
+ right: 0;
+}

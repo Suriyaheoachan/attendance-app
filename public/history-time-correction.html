@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"><title>ประวัติขอเพิ่มเวลา</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="content">
+    <div class="card wide">
+      <h2>ประวัติขอเพิ่มเวลา (Admin)</h2>
+      <div class="filters">
+        <div><label>ตั้งแต่วันที่</label><input id="dateFrom" type="date"></div>
+        <div><label>ถึงวันที่</label><input id="dateTo" type="date"></div>
+        <div><label>ชื่อพนักงาน</label><input id="filterName"></div>
+        <div><label>บริษัท</label><input id="filterCompany"></div>
+        <div><label>แผนก</label><input id="filterDept"></div>
+      </div>
+      <button onclick="search()">ค้นหา</button>
+      <p class="msg" id="msg"></p>
+      <table>
+        <thead><tr><th>ชื่อ</th><th>บริษัท</th><th>แผนก</th><th>วันที่</th><th>เวลาที่ควรสแกน</th><th>เหตุผล</th><th>รายละเอียด</th></tr></thead>
+        <tbody id="resultBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>
+    async function search() {
+      const params = new URLSearchParams({
+        date_from: document.getElementById('dateFrom').value,
+        date_to: document.getElementById('dateTo').value,
+        name: document.getElementById('filterName').value,
+        company: document.getElementById('filterCompany').value,
+        department: document.getElementById('filterDept').value
+      });
+      const res = await fetch('/api/attendance/time-correction/history?' + params.toString());
+      const msg = document.getElementById('msg');
+      if (res.status === 403) { msg.className = 'msg error'; msg.innerText = 'หน้านี้สำหรับ admin เท่านั้น'; return; }
+      const records = await res.json();
+      document.getElementById('resultBody').innerHTML = records.map(r => `
+        <tr><td>${r.name}</td><td>${r.company}</td><td>${r.department}</td>
+        <td>${r.correction_date}</td><td>${r.correction_time}</td><td>${r.reason_type}</td><td>${r.detail || ''}</td></tr>
+      `).join('');
+      msg.innerText = '';
+    }
+    (async () => { await renderNav('history-time-correction.html'); search(); })();
+  </script>
+</body>
+</html>

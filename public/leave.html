@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"><title>ขอลางาน</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="content">
+    <div class="card">
+      <h2>ขอลางาน</h2>
+      <label>เลือกพนักงาน</label>
+      <select id="employeeSelect" onchange="showInfo()"></select>
+      <div class="info-box" id="empInfo">—</div>
+
+      <label>วันที่/เวลาที่บันทึก (แก้ไขไม่ได้)</label>
+      <input id="submittedAt" readonly>
+
+      <label>ประเภทการลา</label>
+      <select id="leaveType" onchange="onTypeChange()">
+        <option>ลากิจ</option><option>ลากิจจ่าย</option><option>ลาป่วย</option>
+        <option>ลาป่วยจ่าย</option><option>ลาคลอด</option><option>ลาพักร้อน</option>
+      </select>
+      <p class="msg" id="balanceMsg"></p>
+      <p class="msg" id="daysPreview"></p>
+
+      <label>วันที่เริ่ม/เวลา</label>
+      <input id="startDatetime" type="datetime-local" required>
+      <label>ถึงวันที่/เวลา</label>
+      <input id="endDatetime" type="datetime-local" required>
+      <label>รายละเอียด</label>
+      <textarea id="detail" rows="3"></textarea>
+      <button onclick="submitLeave()">ตกลง</button>
+      <p class="msg" id="msg"></p>
+      <label>แนบรูปภาพ (ถ้ามี)</label>
+      <input id="leaveImage" type="file" accept="image/*">
+    </div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>
+    let employees = [];
+    document.getElementById('submittedAt').value = new Date().toLocaleString('th-TH');
+
+    async function loadTeam() {
+      await renderNav('leave.html');
+      const res = await fetch('/api/attendance/my-team');
+      employees = await res.json();
+      document.getElementById('employeeSelect').innerHTML =
+        employees.map(e => `<option value="${e.employee_id}">${e.name} (${e.employee_id})</option>`).join('');
+      showInfo();
+    }
+
+    function currentEmployee() {
+      const id = document.getElementById('employeeSelect').value;
+      return employees.find(x => String(x.employee_id) === String(id));
+    }
+
+    function showInfo() {
+      const e = currentEmployee();
+      document.getElementById('empInfo').innerHTML = e
+        ? `ชื่อ: ${e.name}<br>รหัสพนักงาน: ${e.employee_id}<br>แผนก: ${e.department}<br>บริษัท: ${e.company}
+           <br>วันลาคงเหลือ — ลากิจ: ${e.leave_balance['ลากิจ']} | ลาป่วย: ${e.leave_balance['ลาป่วย']} | ลาพักร้อน: ${e.leave_balance['ลาพักร้อน']}`
+        : '— ไม่พบพนักงาน —';
+      onTypeChange();
+    }
+
+    function onTypeChange() {
+      const e = currentEmployee();
+      const type = document.getElementById('leaveType').value;
+      const balanceMsg = document.getElementById('balanceMsg');
+      balanceMsg.className = 'msg';
+
+      if (e && e.leave_balance.hasOwnProperty(type)) {
+        const remaining = e.leave_balance[type];
+        if (remaining <= 0) {
+          balanceMsg.className = 'msg error';
+          balanceMsg.innerText = `วันลาประเภทนี้ไม่มีวันคงเหลือแล้ว (0 วัน)`;
+        } else {
+          balanceMsg.innerText = `วันคงเหลือ: ${remaining} วัน`;
+        }
+      } else {
+        balanceMsg.innerText = '';
+      }
+
+      // ลาพักร้อน: ตั้งวันที่เริ่มเร็วสุดได้คือวันนี้ + 3 วัน
+      const startInput = document.getElementById('startDatetime');
+      if (type === 'ลาพักร้อน') {
+        const minDate = new Date();
+        minDate.setDate(minDate.getDate() + 3);
+        startInput.min = minDate.toISOString().slice(0, 16);
+      } else {
+        startInput.removeAttribute('min');
+      }
+    }
+
+async function submitLeave() {
+  const e = currentEmployee();
+  if (!e) return;
+
+  const formData = new FormData();
+  formData.append('employee_id', e.employee_id);
+  formData.append('name', e.name);
+  formData.append('company', e.company);
+  formData.append('department', e.department);
+  formData.append('leave_type', document.getElementById('leaveType').value);
+  formData.append('start_datetime', document.getElementById('startDatetime').value);
+  formData.append('end_datetime', document.getElementById('endDatetime').value);
+  formData.append('detail', document.getElementById('detail').value);
+
+  const fileInput = document.getElementById('leaveImage');
+  if (fileInput.files[0]) formData.append('leave_image', fileInput.files[0]);
+
+  const res = await fetch('/api/attendance/leave', {
+    method: 'POST',
+    body: formData   // ⚠️ ห้ามใส่ header 'Content-Type' เอง ต้องให้ browser ตั้งให้อัตโนมัติ
+  });
+  const data = await res.json();
+  const msg = document.getElementById('msg');
+  msg.className = res.ok ? 'msg success' : 'msg error';
+  msg.innerText = data.message || data.error;
+  if (res.ok) setTimeout(() => location.reload(), 1200);
+}
+
+document.getElementById('startDatetime').addEventListener('change', updatePreview);
+document.getElementById('endDatetime').addEventListener('change', updatePreview);
+
+function updatePreview() {
+  const startVal = document.getElementById('startDatetime').value;
+  const endVal = document.getElementById('endDatetime').value;
+  const preview = document.getElementById('daysPreview');
+  if (!startVal || !endVal) { preview.innerText = ''; return; }
+
+  const start = new Date(startVal);
+  const end = new Date(endVal);
+  if (end <= start) { preview.innerText = ''; return; }
+
+  let totalHours = 0;
+  const cursor = new Date(start); cursor.setHours(0,0,0,0);
+  const lastDay = new Date(end); lastDay.setHours(0,0,0,0);
+
+  while (cursor <= lastDay) {
+    const dayStart = new Date(cursor); dayStart.setHours(8,0,0,0);
+    const dayEnd = new Date(cursor); dayEnd.setHours(17,0,0,0);
+    const s = new Date(Math.max(start, dayStart));
+    const e = new Date(Math.min(end, dayEnd));
+    if (e > s) {
+      let h = (e - s) / (1000*60*60);
+      const lunchStart = new Date(cursor); lunchStart.setHours(12,0,0,0);
+      const lunchEnd = new Date(cursor); lunchEnd.setHours(13,0,0,0);
+      const os = new Date(Math.max(s, lunchStart));
+      const oe = new Date(Math.min(e, lunchEnd));
+      if (oe > os) h -= (oe - os) / (1000*60*60);
+      totalHours += Math.max(0, h);
+    }
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  const days = Math.round((totalHours / 8) * 2) / 2;
+  preview.className = 'msg';
+  preview.innerText = `คำนวณได้ ${days} วัน (${totalHours} ชั่วโมง)`;
+}
+
+    loadTeam();
+  </script>
+</body>
+</html>

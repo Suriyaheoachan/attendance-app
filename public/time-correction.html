@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"><title>ขอเพิ่มเวลา</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="content">
+    <div class="card">
+      <h2>ขอเพิ่มเวลา (กรณีลืมสแกน)</h2>
+      <label>เลือกพนักงาน</label>
+      <select id="employeeSelect" onchange="showInfo()"></select>
+      <div class="info-box" id="empInfo">—</div>
+
+      <label>วันที่/เวลาที่บันทึก (แก้ไขไม่ได้)</label>
+      <input id="submittedAt" readonly>
+
+      <label>วันที่ลืมสแกน</label>
+      <input id="correctionDate" type="date">
+      <label>เวลาที่ควรสแกน</label>
+      <input id="correctionTime" type="time">
+      <label>เหตุผลที่ลืมสแกน</label>
+      <select id="reasonType"></select>
+      <label>รายละเอียดเพิ่มเติม</label>
+      <textarea id="detail" rows="3"></textarea>
+      <button onclick="submitCorrection()">ตกลง</button>
+      <p class="msg" id="msg"></p>
+    </div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>
+    let employees = [];
+    document.getElementById('submittedAt').value = new Date().toLocaleString('th-TH');
+
+    async function loadTeam() {
+      await renderNav('time-correction.html');
+      const res = await fetch('/api/attendance/my-team');
+      employees = await res.json();
+      document.getElementById('employeeSelect').innerHTML =
+        employees.map(e => `<option value="${e.employee_id}">${e.name} (${e.employee_id})</option>`).join('');
+      showInfo();
+
+      const reasonsRes = await fetch('/api/attendance/time-correction/reasons');
+      const reasons = await reasonsRes.json();
+      document.getElementById('reasonType').innerHTML =
+        reasons.map(r => `<option value="${r}">${r}</option>`).join('');
+    }
+
+    function currentEmployee() {
+      const id = document.getElementById('employeeSelect').value;
+      return employees.find(x => String(x.employee_id) === String(id));
+    }
+
+    function showInfo() {
+      const e = currentEmployee();
+      document.getElementById('empInfo').innerHTML = e
+        ? `ชื่อ: ${e.name}<br>รหัสพนักงาน: ${e.employee_id}<br>แผนก: ${e.department}<br>บริษัท: ${e.company}`
+        : '— ไม่พบพนักงาน —';
+    }
+
+    async function submitCorrection() {
+      const e = currentEmployee();
+      if (!e) return;
+      const res = await fetch('/api/attendance/time-correction', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employee_id: e.employee_id, name: e.name, company: e.company, department: e.department,
+          correction_date: document.getElementById('correctionDate').value,
+          correction_time: document.getElementById('correctionTime').value,
+          reason_type: document.getElementById('reasonType').value,
+          detail: document.getElementById('detail').value
+        })
+      });
+      const data = await res.json();
+      const msg = document.getElementById('msg');
+      msg.className = res.ok ? 'msg success' : 'msg error';
+      msg.innerText = data.message || data.error;
+      if (res.ok) setTimeout(() => location.reload(), 1200);
+    }
+
+    loadTeam();
+  </script>
+</body>
+</html>

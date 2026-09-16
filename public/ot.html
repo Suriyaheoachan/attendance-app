@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"><title>ขอ OT</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="content">
+    <div class="card">
+      <h2>ขอทำงานล่วงเวลา (OT)</h2>
+      <label>เลือกพนักงาน</label>
+      <select id="employeeSelect" onchange="showInfo()"></select>
+      <div class="info-box" id="empInfo">—</div>
+
+      <label>วันที่/เวลาที่บันทึก (แก้ไขไม่ได้)</label>
+      <input id="submittedAt" readonly>
+
+      <label>วันที่ทำ OT</label>
+      <input id="otDate" type="date">
+      <label>เวลาเริ่ม OT</label>
+      <input id="otStart" type="time" onchange="updatePreview()">
+      <label>เวลาสิ้นสุด OT</label>
+      <input id="otEnd" type="time" onchange="updatePreview()">
+      <p class="msg" id="hoursPreview"></p>
+      <label>รายละเอียด/งานที่ทำ</label>
+      <textarea id="detail" rows="3"></textarea>
+      <button onclick="submitOT()">ตกลง</button>
+      <p class="msg" id="msg"></p>
+    </div>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>
+    let employees = [];
+    document.getElementById('submittedAt').value = new Date().toLocaleString('th-TH');
+
+    async function loadTeam() {
+      await renderNav('ot.html');
+      const res = await fetch('/api/attendance/my-team');
+      employees = await res.json();
+      document.getElementById('employeeSelect').innerHTML =
+        employees.map(e => `<option value="${e.employee_id}">${e.name} (${e.employee_id})</option>`).join('');
+      showInfo();
+    }
+
+    function currentEmployee() {
+      const id = document.getElementById('employeeSelect').value;
+      return employees.find(x => String(x.employee_id) === String(id));
+    }
+
+    function showInfo() {
+      const e = currentEmployee();
+      document.getElementById('empInfo').innerHTML = e
+        ? `ชื่อ: ${e.name}<br>รหัสพนักงาน: ${e.employee_id}<br>แผนก: ${e.department}<br>บริษัท: ${e.company}`
+        : '— ไม่พบพนักงาน —';
+    }
+
+    function updatePreview() {
+      const start = document.getElementById('otStart').value;
+      const end = document.getElementById('otEnd').value;
+      const preview = document.getElementById('hoursPreview');
+      if (!start || !end) { preview.innerText = ''; return; }
+      const [sh, sm] = start.split(':').map(Number);
+      const [eh, em] = end.split(':').map(Number);
+      let hours = (eh + em/60) - (sh + sm/60);
+      if (hours <= 0) { preview.className = 'msg error'; preview.innerText = 'เวลาสิ้นสุดต้องมากกว่าเวลาเริ่ม'; return; }
+      preview.className = 'msg';
+      preview.innerText = `รวม ${hours.toFixed(2)} ชั่วโมง`;
+    }
+
+    async function submitOT() {
+      const e = currentEmployee();
+      if (!e) return;
+      const res = await fetch('/api/attendance/ot', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employee_id: e.employee_id, name: e.name, company: e.company, department: e.department,
+          ot_date: document.getElementById('otDate').value,
+          ot_start_time: document.getElementById('otStart').value,
+          ot_end_time: document.getElementById('otEnd').value,
+          detail: document.getElementById('detail').value
+        })
+      });
+      const data = await res.json();
+      const msg = document.getElementById('msg');
+      msg.className = res.ok ? 'msg success' : 'msg error';
+      msg.innerText = data.message || data.error;
+      if (res.ok) setTimeout(() => location.reload(), 1200);
+    }
+
+    loadTeam();
+  </script>
+</body>
+</html>

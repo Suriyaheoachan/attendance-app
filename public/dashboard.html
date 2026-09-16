@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="th">
+<head><meta charset="UTF-8"><title>บันทึกลา/มาสาย</title></head>
+<body>
+  <h2>บันทึกลา/มาสายให้พนักงาน</h2>
+
+  <select id="employeeSelect"></select><br><br>
+  <input id="date" type="date"><br><br>
+  <select id="type">
+    <option value="ลา">ลา</option>
+    <option value="มาสาย">มาสาย</option>
+  </select><br><br>
+  <input id="reason" placeholder="เหตุผล"><br><br>
+  <button onclick="submitRecord()">บันทึก</button>
+  <p id="msg"></p>
+
+  <h3>ประวัติของพนักงานที่เลือก</h3>
+  <ul id="history"></ul>
+
+  <script>
+    async function loadTeam() {
+      const res = await fetch('/api/attendance/my-team');
+      const employees = await res.json();
+      const select = document.getElementById('employeeSelect');
+      select.innerHTML = employees.map(e =>
+        `<option value="${e.employee_id}">${e.name} (${e.employee_id})</option>`
+      ).join('');
+      loadHistory();
+    }
+
+    async function submitRecord() {
+      const employee_id = document.getElementById('employeeSelect').value;
+      const date = document.getElementById('date').value;
+      const type = document.getElementById('type').value;
+      const reason = document.getElementById('reason').value;
+      const res = await fetch('/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ employee_id, date, type, reason })
+      });
+      const data = await res.json();
+      document.getElementById('msg').innerText = data.message || data.error;
+      loadHistory();
+    }
+
+    async function loadHistory() {
+      const employee_id = document.getElementById('employeeSelect').value;
+      const res = await fetch(`/api/attendance/history?employee_id=${employee_id}`);
+      const records = await res.json();
+      const list = document.getElementById('history');
+      list.innerHTML = '';
+      records.forEach(r => {
+        const li = document.createElement('li');
+        li.innerText = `${r.date} | ${r.type} | ${r.reason}`;
+        list.appendChild(li);
+      });
+    }
+
+    document.getElementById('employeeSelect').addEventListener('change', loadHistory);
+    loadTeam();
+  </script>
+</body>
+</html>
