@@ -1,4 +1,3 @@
-module.exports = require('../server');
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const authRoutes = require('../routes/auth');
@@ -11,4 +10,4 @@ app.use(cookieParser());
 app.use('/api/auth', authRoutes);
 app.use('/api/attendance', attendanceRoutes);
 
-module.exports = app;   // ⚠️ ไม่มี app.listen() เพราะ Vercel เป็นคนเรียกฟังก์ชันนี้เอง
+module.exports = require('../server');  // ⚠️ ไม่มี app.listen() เพราะ Vercel เป็นคนเรียกฟังก์ชันนี้เอง
